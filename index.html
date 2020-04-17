@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<title>1WXG Meteograms</title>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<!---<script src="https://d3js.org/d3.v5.min.js"></script>--->
+<script src="https://d3js.org/d3-hexbin.v0.2.min.js"></script>
+<script src="https://d3js.org/d3-contour.v1.min.js"></script>
+
+</head>
+<body>
+
+<div id="main_container"></div>
+<div id="title_section"></div>
+<div id="upper_section"></div>
+<div id="temp_section"></div>
+
+
+<script src="js/meteogram.js"></script>
+<script>
+var icao="OAYQ";
+
+titleArea(icao,"#title_section");
+topContourGraph(icao,"#upper_section",{
+    levels: [200,250,500,700,850,925,1000],
+    parameterShortName: ["RH","TMP","UGRD","VGRD"]
+}, false);
+
+
+zoomLineGraph(icao,"#temp_section","PRMSL-mean sea level()",false,{
+    units:"mb",
+    LabelText: "Press MSL",
+    LabelColor: "black",
+    });
+zoomLineGraph(icao,"#temp_section","RH-2 m above ground()",false,{
+    units: "%",
+    LabelText: "RH SFC",
+    LabelColor: "green"
+});
+
+/*lineGraph("KQA7","#temp_section","RH-700 mb()",false,{
+    units:"%",
+    LabelText: "RH 700mb",
+    LabelColor: "green"
+    });*/
+zoomBarGraph(icao,"#temp_section","VIS-surface(prob <3)",false,{
+    units:"%",
+    LabelText: "VIS-SFC(prob <3)",
+    LabelColor: "steelblue"
+});
+barGraph(icao,"#temp_section","VIS-surface(prob <1)",false,{
+    units:"%",
+    LabelText: "VIS-SFC(prob <1)",
+    LabelColor: "blue"
+});
+var parameter0 = "UGRD-10 m above ground()";
+var parameter1 = "VGRD-10 m above ground()";
+windGraph(icao,"#temp_section",{
+    param:"WIND-10 m above ground(ens mean)",
+    param1: "UGRD-10 m above ground()",
+    param2: "VGRD-10 m above ground()"
+}   ,false,{
+    units: 'kts',
+    LabelText: "Wind Gusts",
+    LabelColor: "black"
+})
+
+</script>
+
+<link rel="stylesheet" type="text/css" href="./css/meteogram.css">
+</body>
+
+</html>
