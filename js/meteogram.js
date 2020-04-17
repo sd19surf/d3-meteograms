@@ -825,7 +825,7 @@ function topContourGraph(icao,div,parameterInfo,add){
 
  var parameter = parameterInfo.parameterShortName[0]+'-'+parameterInfo.levels[0]+' mb()';
   // loop through each level and each param and plot accordingly
-
+ var topDataset=[];
     // set the dimensions and margins of the graph
     var margin = {top: 20, right: 20, bottom: 30, left: 50},
     width = 1000 - margin.left - margin.right,
@@ -844,11 +844,34 @@ function topContourGraph(icao,div,parameterInfo,add){
     d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
         if (error) throw error;
         // build datasets for the winds etc...
-        data[parameter].forEach(function(d) {
-            d.time = d.time;
-            d.value = +d.value;
-      
-        });   
+        for (var i = 0; i < parameterInfo.levels.length; i++){
+          var tempDataset=[];
+          var lev = parameterInfo.levels[i];
+          var levelName = "H"+lev+"mb";
+            data["RH-"+lev+" mb()"].forEach(function(d){
+              data["TMP-"+lev+" mb()"].forEach(function(d1){
+                data["UGRD-"+lev+" mb()"].forEach(function(d2){
+                  data["VGRD-"+lev+" mb()"].forEach(function(d3){
+                    if (d.time == d1.time && d.time == d2.time && d.time == d3.time){
+                      tempDataset.push({
+                        "level": lev,
+                        "time": d.time,
+                        "rh": d.value,
+                        "temp": unitConvert("C",d1.value),
+                        "wspd": windSpeed(d2.value,d3.value),
+                        "wdir": windDirection(d2.value,d3.value)
+                      })
+                    }
+                  })
+                })
+              })
+            })
+          var key = levelName;
+          var obj = {};
+          obj[key]=tempDataset;
+          topDataset.push(obj);
+        }
+        console.log(topDataset);
      
  // Add X axis --> it is a date format
  var x = d3.scaleTime()
@@ -906,8 +929,35 @@ function topContourGraph(icao,div,parameterInfo,add){
     return d3.axisLeft(y)
         .ticks(10)
     }
+makeBarbTemplates(svg);
+
+//build the winds
+console.log(topDataset[4]['H'+parameterInfo.levels[4]+'mb']);
+for (var i=0;i<topDataset.length;i++){
+    svg.selectAll("barbs")
+    .data(topDataset[i]['H'+parameterInfo.levels[i]+'mb'])
+    .enter()
+    .append("g")
+    .attr("class", "windbarb")
+    .attr("transform", function(d) { console.log(d.level);return "translate("+x(new Date(d.time))+","+y(d.level)+") rotate("+(d.wdir+180)+")"; })
+    .append(function(d) { 
+        var wndspd = Math.round(d.wspd/5)*5;
+        if (wndspd > 0){
+        var barbWnd = document.getElementById('barb'+wndspd);
+        var clone = barbWnd.cloneNode(true);
+        return clone;
+        }else{
+          var circles = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circles.setAttribute("r",5);
+          return circles;
+        }
+     })
+    }
+    // build the data displays 
+
+
     
-     //compute the density data
+   /*  //compute the density data
       var densityData = d3.contourDensity()
         .x(function(d) { return x(getDate(d)); })
         .y(function(d) { return y(d.value); })
@@ -922,7 +972,7 @@ function topContourGraph(icao,div,parameterInfo,add){
         .data(densityData,function(d){})
         .enter().append("path")
           .attr("d", d3.geoPath())
-          .attr("fill", function(d) { return color(d.value); })
+          .attr("fill", function(d) { return color(d.value); })*/
     })
     
     }
