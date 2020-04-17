@@ -887,15 +887,12 @@ function topContourGraph(icao,div,parameterInfo,add){
       .domain([d3.max(parameterInfo.levels),d3.min(parameterInfo.levels)])
       .range([ height, 0 ]);
     yAxis = svg.append("g")
-      .call(d3.axisLeft(y));
-
-
-    
+      .call(d3.axisLeft(y));    
     
       // Prepare a color palette
       var color = d3.scaleLinear()
-          .domain([0, 1]) // Points per square pixel.
-          .range(["white", "#69b3a2"])
+          .domain([0, 100]) // Points per square pixel.
+          .range(["white", "darkgreen"])
     
           // add the X gridlines
       svg.append("g")			
@@ -932,7 +929,6 @@ function topContourGraph(icao,div,parameterInfo,add){
 makeBarbTemplates(svg);
 
 //build the winds
-console.log(topDataset[4]['H'+parameterInfo.levels[4]+'mb']);
 for (var i=0;i<topDataset.length;i++){
     svg.selectAll("barbs")
     .data(topDataset[i]['H'+parameterInfo.levels[i]+'mb'])
@@ -954,17 +950,16 @@ for (var i=0;i<topDataset.length;i++){
      })
     }
     // build the data displays 
-
-
     
-   /*  //compute the density data
+     //compute the density data
+  for(var i = 0;i < topDataset.length; i++){
       var densityData = d3.contourDensity()
-        .x(function(d) { return x(getDate(d)); })
-        .y(function(d) { return y(d.value); })
-        .weight(function(d) {return d.value;})
+        .x(function(d) { return x(new Date(d.time)); })
+        .y(function(d) { return y(d.level); })
+        .weight(function(d) {return d.rh*1000;})
         .size([width, height])
         .bandwidth(20)
-        (data[parameter])
+        (topDataset[i]['H'+parameterInfo.levels[i]+'mb'])
     
       // show the shape!
       svg.insert("g", "g")
@@ -972,9 +967,10 @@ for (var i=0;i<topDataset.length;i++){
         .data(densityData,function(d){})
         .enter().append("path")
           .attr("d", d3.geoPath())
-          .attr("fill", function(d) { return color(d.value); })*/
+          .attr("fill", function(d) { return color(d.value); })
+  }
     })
-    
+  
     }
 
 function windGraph(icao,div,parameter,add,options){
