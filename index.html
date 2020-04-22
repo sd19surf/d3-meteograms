@@ -22,13 +22,13 @@ var icao="KQSP";
 
 titleArea(icao,"#title_section");
 topContourGraph(icao,"#upper_section",{
-    levels: [200,250,500,700,850,925,1000],
+    levels: [50,70,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,925,950,975,1000],
     parameterShortName: ["RH","TMP","UGRD","VGRD"]
 }, false);
 
 
 zoomLineGraph(icao,"#temp_section","PRMSL-mean sea level()",false,{
-    units:"mb",
+    units:"inHg",
     LabelText: "Press MSL",
     LabelColor: "black",
     });
@@ -43,25 +43,24 @@ zoomLineGraph(icao,"#temp_section","RH-2 m above ground()",false,{
     LabelText: "RH 700mb",
     LabelColor: "green"
     });*/
-zoomBarGraph(icao,"#temp_section","VIS-surface(prob <3)",false,{
-    units:"%",
-    LabelText: "VIS-SFC(prob <3)",
+zoomBarGraph(icao,"#temp_section","CAPE-surface()",false,{
+    units:"J/kg",
+    LabelText: "CAPE-SFC",
     LabelColor: "steelblue"
 });
-barGraph(icao,"#temp_section","VIS-surface(prob <1)",false,{
-    units:"%",
-    LabelText: "VIS-SFC(prob <1)",
-    LabelColor: "blue"
-});
-var parameter0 = "UGRD-10 m above ground()";
-var parameter1 = "VGRD-10 m above ground()";
+//barGraph(icao,"#temp_section","VIS-surface(prob <1)",false,{
+//    units:"%",
+//    LabelText: "VIS-SFC(prob <1)",
+//    LabelColor: "blue"
+//});
+
 windGraph(icao,"#temp_section",{
-    param:"WIND-10 m above ground(ens mean)",
+    param:"SUNSD-surface()",
     param1: "UGRD-10 m above ground()",
     param2: "VGRD-10 m above ground()"
 }   ,false,{
-    units: 'kts',
-    LabelText: "Wind Gusts",
+    units: 'Unk',
+    LabelText: "SUNSD",
     LabelColor: "black"
 })
 

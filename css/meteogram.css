@@ -62,4 +62,5 @@ background-color: white;
   }
 
   .windbarb { stroke: #000; stroke-width: 0.75px; fill: none;}
+  .windHover{stroke: red; stroke-width: 0.80px; fill:none;}
 .flag { fill: #000; }

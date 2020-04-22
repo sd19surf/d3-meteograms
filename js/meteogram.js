@@ -7,7 +7,7 @@ use perl derived tarp data from any model.
 
 function titleArea(icao,div){
 
-    d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+    d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
         if (error) throw error;
         // format the data
 
@@ -68,9 +68,10 @@ function make_y_gridlines() {
 }
 
 // Get the data
-d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
   if (error) throw error;
     var lineType = parameter.split("-");
+    console.log(data);
   // format the data
   data[parameter].forEach(function(d) {
       d.time = d.time;
@@ -189,7 +190,7 @@ function make_y_gridlines() {
 }
   
   //Read the data
-  d3.json("./data/"+icao+"_GLOBAL_tarp.json",function(error, data) {
+  d3.json("./data/"+icao+"_gfs_tarp.json",function(error, data) {
           if (error) {
               throw error;
           }else{
@@ -244,6 +245,8 @@ function make_y_gridlines() {
           // Add the line
           line.append("path")
         .datum(data[parameter])
+        .on("mouseover", onMouseOver) //Add listener for the mouseover event
+        .on("mouseout", onMouseOut)   //Add listener for the mouse
         .attr("class", "line")  // I add the class line to be able to modify this line later on.
         .attr("fill", "none")
         .attr("stroke", options.LabelColor)
@@ -302,6 +305,30 @@ function make_y_gridlines() {
             .y(function(d) { return y(unitConvert(options.units,d.value)) })
         )
       })
+
+      //mouseover event handler function
+function onMouseOver(d, i) {
+  d3.select(this).attr('class', 'highlight');
+  svg.append("text")
+   .attr('class', 'val') 
+   .attr('x', function() {
+       return x(new Date(d.time));
+   })
+   .attr('y', function() {
+       return y(unitConvert(options.units,d.value)) - 15;
+   })
+   .text(function() {
+       return [ unitConvert(options.units,d.value)+" "+getDate(d)];  // Value of the text
+   });
+}
+
+//mouseout event handler function
+function onMouseOut(d, i) {
+  // use the text label class to remove label on mouseout
+  d3.select(this).attr('class', 'line');
+  d3.selectAll('.val')
+    .remove()
+}
   
         
   });
@@ -335,7 +362,7 @@ var svg = d3.select(div).select("svg")
 
 
 // Parse the Data
-d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
     if (error) throw error;
       var lineType = parameter.split("-");
     // format the data
@@ -510,7 +537,7 @@ function barGraph(icao,div,parameter,add,options){
    
    
    // Parse the Data
-   d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+   d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
        if (error) throw error;
          var lineType = parameter.split("-");
        // format the data
@@ -841,7 +868,7 @@ function topContourGraph(icao,div,parameterInfo,add){
               "translate(" + margin.left + "," + margin.top + ")");
     
     // read data
-    d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+    d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
         if (error) throw error;
         // build datasets for the winds etc...
         for (var i = 0; i < parameterInfo.levels.length; i++){
@@ -871,7 +898,7 @@ function topContourGraph(icao,div,parameterInfo,add){
           obj[key]=tempDataset;
           topDataset.push(obj);
         }
-        console.log(topDataset);
+       // console.log(topDataset);
      
  // Add X axis --> it is a date format
  var x = d3.scaleTime()
@@ -934,6 +961,8 @@ for (var i=0;i<topDataset.length;i++){
     .data(topDataset[i]['H'+parameterInfo.levels[i]+'mb'])
     .enter()
     .append("g")
+    .on("mouseover", onMouseOver) //Add listener for the mouseover event
+    .on("mouseout", onMouseOut)   //Add listener for the mouse
     .attr("class", "windbarb")
     .attr("transform", function(d) { console.log(d.level);return "translate("+x(new Date(d.time))+","+y(d.level)+") rotate("+(d.wdir+180)+")"; })
     .append(function(d) { 
@@ -958,17 +987,50 @@ for (var i=0;i<topDataset.length;i++){
         .y(function(d) { return y(d.level); })
         .weight(function(d) {return d.rh*1000;})
         .size([width, height])
-        .bandwidth(20)
+        .bandwidth(15)
+        //(topDataset)
         (topDataset[i]['H'+parameterInfo.levels[i]+'mb'])
     
       // show the shape!
+ 
       svg.insert("g", "g")
         .selectAll("path")
         .data(densityData,function(d){})
         .enter().append("path")
           .attr("d", d3.geoPath())
+          //.attr("fill", "none")
+          //.attr("stroke", "#69b3a2")
+         // .attr("stroke-linejoin", "round")
           .attr("fill", function(d) { return color(d.value); })
+          .attr("opacity",function(d){return d.value/100;})
+
   }
+
+//mouseover event handler function
+function onMouseOver(d, i) {
+  d3.select(this).attr('class', 'windbarb');
+  svg.append("text")
+   .attr('class', 'val') 
+   .attr('x', function() {
+       return x(new Date(d.time));
+   })
+   .attr('y', function() {
+       return y(d.level) - 15;
+   })
+   .text(function() {
+       return [ pad(d.wdir,3)+""+pad(d.wspd,2)+"kt at "+getDate(d)+"\n"+d.rh];  // Value of the text
+   })
+   .attr("fill",function(d){return "red"});
+}
+
+//mouseout event handler function
+function onMouseOut(d, i) {
+  // use the text label class to remove label on mouseout
+  d3.select(this).attr('class', 'windbarb');
+  d3.selectAll('.val')
+    .remove()
+}
+
     })
   
     }
@@ -996,7 +1058,7 @@ function windGraph(icao,div,parameter,add,options){
 makeBarbTemplates(svg); //create and append a library of all wind barbs from 0 to 200kts
 
 // Parse the Data
-d3.json("./data/"+icao+"_GLOBAL_tarp.json", function(error, data) {
+d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
   if (error) throw error;
   // format the data
   //build dataset for winds
@@ -1098,7 +1160,7 @@ svg.append("g")
       .enter()
       .append("g")
       .attr("class", "windbarb")
-      .attr("transform", function(d) { return "translate("+x(new Date(d.time))+","+y(5)+") rotate("+(d.wdir+180)+")"; })
+      .attr("transform", function(d) { return "translate("+x(new Date(d.time))+","+y(height)+") rotate("+(d.wdir+180)+")"; })
       .append(function(d) { 
           var wndspd = Math.round(d.wspd/5)*5;
           if (wndspd > 0){
@@ -1159,6 +1221,11 @@ function pad(num, size) {
     return rawPress/100;
   }
 
+  function mbToinHG(rawPress){
+    var pressure = millibars(rawPress)*0.02953;
+    return pressure.toFixed(2);
+  }
+
   function windKTs(mps){
     //meters per sec to knots
     return mps*1.94384449;
@@ -1175,6 +1242,9 @@ function pad(num, size) {
         break;
       case "kts":
         return windKTs(value);
+        break;
+      case "inHg":
+        return mbToinHG(value);
         break;
       default:
         return value;
