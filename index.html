@@ -14,11 +14,12 @@
 <div id="title_section"></div>
 <div id="upper_section"></div>
 <div id="temp_section"></div>
+<div id="tempdewpt_section"></div>
 
 
 <script src="js/meteogram.js"></script>
 <script>
-var icao="KQSP";
+var icao="OAUZ";
 
 titleArea(icao,"#title_section");
 topContourGraph(icao,"#upper_section",{
@@ -27,14 +28,16 @@ topContourGraph(icao,"#upper_section",{
 }, false);
 
 
-zoomLineGraph(icao,"#temp_section","PRMSL-mean sea level()",false,{
-    units:"inHg",
-    LabelText: "Press MSL",
-    LabelColor: "black",
-    });
-zoomLineGraph(icao,"#temp_section","RH-2 m above ground()",false,{
-    units: "%",
-    LabelText: "RH SFC",
+//zoomLineGraph(icao,"#temp_section",{param1:"PRMSL-mean sea level()"},false,{
+//    units:"inHg",
+//    LabelText: "Press MSL",
+//    LabelColor: "black",
+//    });
+zoomLineGraph(icao,"#tempdewpt_section",{
+    param1:"RH-2 m above ground()",
+    param2: "TMP-2 m above ground()"},false,{
+    units: "C",
+    LabelText: "Temp/Dewpoint",
     LabelColor: "green"
 });
 
@@ -54,15 +57,15 @@ zoomBarGraph(icao,"#temp_section","CAPE-surface()",false,{
 //    LabelColor: "blue"
 //});
 
-windGraph(icao,"#temp_section",{
-    param:"SUNSD-surface()",
-    param1: "UGRD-10 m above ground()",
-    param2: "VGRD-10 m above ground()"
-}   ,false,{
-    units: 'Unk',
-    LabelText: "SUNSD",
-    LabelColor: "black"
-})
+//windGraph(icao,"#temp_section",{
+//    param:"SUNSD-surface()",
+//    param1: "UGRD-10 m above ground()",
+//    param2: "VGRD-10 m above ground()"
+//}   ,false,{
+//    units: 'Unk',
+//    LabelText: "SUNSD",
+//    LabelColor: "black"
+//})
 
 </script>
 

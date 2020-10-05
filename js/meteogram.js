@@ -10,17 +10,15 @@ function titleArea(icao,div){
     d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
         if (error) throw error;
         // format the data
-
-        d3.select(div).append("h3")
+      d3.select(div).append("span")
+        d3.select("span").append("p")
        // .append("img")
        // .attr("src","./img/1-WXG-(Metallic).png")
        // .attr("width", "50px")
        // .attr("height", "50px")
         .attr("text",data["ICAO"])
-        .text("Meteogram for "+data.ICAO+" Lat: "+data["GEOLAT-surface()"][0].value+ " Lon: "+data["GEOLON-surface()"][0].value+" Valid:" +d3.min(data["GEOLAT-surface()"], function(d) { return getDate(d); })+" to "+d3.max(data["GEOLAT-surface()"], function(d) { return getDate(d); }));
-
-
-    
+        .text("Meteogram for "+data.ICAO+" Lat: "+data.LAT+ " Lon: "+data.LON+" Valid:" +d3.min(data["LAND-surface()"], function(d) { return getDate(d); })+" to "+d3.max(data["LAND-surface()"], function(d) { return getDate(d); }));
+   
     });
 }
 
@@ -161,6 +159,7 @@ var valueline = d3.line()
 function zoomLineGraph(icao,div,parameter,add,options){
 
   //need to check options and assign defaults
+  //can take 2 parameters
 
 
   // set the dimensions and margins of the graph
@@ -177,40 +176,76 @@ function zoomLineGraph(icao,div,parameter,add,options){
       .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
 
-  // gridlines in x axis function
-function make_x_gridlines() {		
-  return d3.axisBottom(x)
-      .ticks(5)
-}
 
-// gridlines in y axis function
-function make_y_gridlines() {		
-  return d3.axisLeft(y)
-      .ticks(5)
-}
-  
+var dataset = []; 
   //Read the data
   d3.json("./data/"+icao+"_gfs_tarp.json",function(error, data) {
           if (error) {
               throw error;
           }else{
-
-          }
+            //change to accept param1 and param2 with optional units
+                data[parameter.param1].forEach(function(d){
+                  data[parameter.param2].forEach(function(d1){
+                    if (d.time == d1.time){
+                          dataset.push({
+                            "time": d.time,
+                            "dewpt": unitConvert("dewpt",[unitConvert("C",d1.value),d.value]),
+                            "temp": unitConvert("C",d1.value)
+                          })
+                        }
+                      })
+                    })
+                  }
   
    // Add X axis --> it is a date format
    var x = d3.scaleTime()
-        .domain(d3.extent(data[parameter], function(d) { return new Date(d.time); }))
+        .domain(d3.extent(dataset, function(d) { return new Date(d.time); }))
         .range([ 0, width ]);
       xAxis = svg.append("g")
         .attr("transform", "translate(0," + height + ")")
+        .attr("class", "zoomline")
         .call(d3.axisBottom(x));
   
       // Add Y axis
       var y = d3.scaleLinear()
-        .domain([d3.min(data[parameter], function(d) { return unitConvert(options.units,d.value); }), d3.max(data[parameter], function(d) { return unitConvert(options.units,d.value); })])
+        .domain([d3.min(dataset, function(d) { return d.dewpt; }), d3.max(dataset, function(d) { return d.temp; })])
         .range([ height, 0 ]);
       yAxis = svg.append("g")
         .call(d3.axisLeft(y));
+
+
+  // gridlines in x axis function
+  function make_x_gridlines() {		
+    return d3.axisBottom(x)
+        .ticks(10)
+  }
+  
+  // gridlines in y axis function
+  function make_y_gridlines() {		
+    return d3.axisLeft(y)
+        .ticks(10)
+  }
+
+         // add the X gridlines
+         svg.append("g")			
+         .attr("class", "grid")
+         .attr("transform", "translate(0," + height + ")")
+         .call(make_x_gridlines()
+             .tickSize(-height)
+             .tickFormat("")
+         )
+   
+     // add the Y gridlines
+     svg.append("g")			
+         .attr("class", "grid")
+         .call(make_y_gridlines()
+             .tickSize(-width)
+             .tickFormat("")
+         )
+     
+  
+    
+      
 
         // text label for the y axis
   svg.append("text")
@@ -244,7 +279,7 @@ function make_y_gridlines() {
   
           // Add the line
           line.append("path")
-        .datum(data[parameter])
+        .datum(dataset)
         .on("mouseover", onMouseOver) //Add listener for the mouseover event
         .on("mouseout", onMouseOut)   //Add listener for the mouse
         .attr("class", "line")  // I add the class line to be able to modify this line later on.
@@ -253,14 +288,35 @@ function make_y_gridlines() {
         .attr("stroke-width", 1.5)
         .attr("d", d3.line()
           .x(function(d) { return x(new Date(d.time)) })
-          .y(function(d) { return y(unitConvert(options.units,d.value)) })
+          .y(function(d) { return y(d.dewpt) })
           )
+
+          // Add the line2
+          var line2 = svg.append('g')
+          .attr("clip-path", "url(#clip)")
+          line2.append("path")
+        .datum(dataset)
+        .on("mouseover", onMouseOver) //Add listener for the mouseover event
+        .on("mouseout", onMouseOut)   //Add listener for the mouse
+        .attr("class", "line2")  // I add the class line to be able to modify this line later on.
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("stroke-width", 1.5)
+        .attr("d", d3.line()
+          .x(function(d) { return x(new Date(d.time)) })
+          .y(function(d) { return y(d.temp) })
+          )
+
   
       // Add the brushing
       line
         .append("g")
           .attr("class", "brush")
           .call(brush);
+      line2
+      .append("g")
+      .attr("class", "brush")
+      .call(brush);       
   
       // A function that set idleTimeOut to null
       var idleTimeout
@@ -278,7 +334,8 @@ function make_y_gridlines() {
           x.domain([ 4,8])
         }else{
           x.domain([ x.invert(extent[0]), x.invert(extent[1]) ])
-          line.select(".brush").call(brush.move, null) // This remove the grey brush area as soon as the selection has been done
+          line.select(".brush").call(brush.move, null)
+          //line2.select(".brush").call(brush.move, null) // This remove the grey brush area as soon as the selection has been done
         }
   
         // Update axis and line position
@@ -289,20 +346,36 @@ function make_y_gridlines() {
             .duration(1000)
             .attr("d", d3.line()
               .x(function(d) { return x(new Date(d.time)) })
-              .y(function(d) { return y(unitConvert(options.units,d.value)) })
+              .y(function(d) { return y(d.dewpt) })
             )
+        line2
+            .select('.line2')
+            .transition()
+            .duration(1000)
+            .attr("d", d3.line()
+              .x(function(d) { return x(new Date(d.time)) })
+              .y(function(d) { return y(d.temp) })
+            )
+
       }
   
       // If user double click, reinitialize the chart
       svg.on("dblclick",function(){
-        x.domain(d3.extent(data[parameter], function(d) { return new Date(d.time); }))
+        x.domain(d3.extent(dataset, function(d) { return new Date(d.time); }))
         xAxis.transition().call(d3.axisBottom(x))
         line
           .select('.line')
           .transition()
           .attr("d", d3.line()
             .x(function(d) { return x(new Date(d.time)) })
-            .y(function(d) { return y(unitConvert(options.units,d.value)) })
+            .y(function(d) { return y(d.dewpt) })
+        )
+        line2
+          .select('.line2')
+          .transition()
+          .attr("d", d3.line()
+            .x(function(d) { return x(new Date(d.time)) })
+            .y(function(d) { return y(d.temp) })
         )
       })
 
@@ -315,10 +388,10 @@ function onMouseOver(d, i) {
        return x(new Date(d.time));
    })
    .attr('y', function() {
-       return y(unitConvert(options.units,d.value)) - 15;
+       return y(d.dewpt) - 15;
    })
    .text(function() {
-       return [ unitConvert(options.units,d.value)+" "+getDate(d)];  // Value of the text
+       return [ d.dewpt +" "+getDate(d)];  // Value of the text
    });
 }
 
@@ -391,13 +464,13 @@ d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
   // gridlines in x axis function
 function make_x_gridlines() {		
   return d3.axisBottom(x)
-      .ticks(5)
+      .ticks(20)
 }
 
 // gridlines in y axis function
 function make_y_gridlines() {		
   return d3.axisLeft(y)
-      .ticks(5)
+      .ticks(10)
 }
   // add the X gridlines
   svg.append("g")			
@@ -525,13 +598,13 @@ function barGraph(icao,div,parameter,add,options){
    // gridlines in x axis function
    function make_x_gridlines() {		
       return d3.axisBottom(x)
-          .ticks(5)
+          .ticks(20)
    }
    
    // gridlines in y axis function
    function make_y_gridlines() {		
       return d3.axisLeft(y)
-          .ticks(5)
+          .ticks(10)
    }
    
    
@@ -652,200 +725,9 @@ function barGraph(icao,div,parameter,add,options){
   } // end regular bargraph
 
 
-function topHexGraph(icao,div,parameter,add){
-// builds the top portion of the meteogram
-// this might be harder than I expect.
-var margin = {top: 20, right: 20, bottom: 30, left: 50},
-width = 1000 - margin.left - margin.right,
-height = 400 - margin.top - margin.bottom;
-
-// append the svg object to the body of the page
-var svg = d3.select(div)
-  .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-
- // read data
- //convert data ingested to be plotted
-d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_for_density2d.csv", function(data) {
-
-    // Add X axis
-    var x = d3.scaleLinear()
-      .domain([5, 18])
-      .range([ 0, width ]);
-    svg.append("g")
-      .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x));
-  
-    // Add Y axis
-    var y = d3.scaleLinear()
-      .domain([5, 20])
-      .range([ height, 0 ]);
-    svg.append("g")
-      .call(d3.axisLeft(y));
-  
-    // Reformat the data: d3.hexbin() needs a specific format
-    var inputForHexbinFun = []
-    data.forEach(function(d) {
-      inputForHexbinFun.push( [x(d.x), y(d.y)] )  // Note that we had the transform value of X and Y !
-    })
-  
-    // Prepare a color palette
-    var color = d3.scaleLinear()
-        .domain([0, 600]) // Number of points in the bin?
-        .range(["transparent",  "#69b3a2"])
-  
-    // Compute the hexbin data
-    var hexbin = d3.hexbin()
-      .radius(9) // size of the bin in px
-      .extent([ [0, 0], [width, height] ])
-
-  // add the X gridlines
-  svg.append("g")			
-      .attr("class", "grid")
-      .attr("transform", "translate(0," + height + ")")
-      .call(make_x_gridlines()
-          .tickSize(-height)
-          .tickFormat("")
-      )
-
-  // add the Y gridlines
-  if(add){
-  }else{
-  svg.append("g")			
-      .attr("class", "grid")
-      .call(make_y_gridlines()
-          .tickSize(-width)
-          .tickFormat("")
-      )
-  }
 
 
-   // gridlines in x axis function
-function make_x_gridlines() {		
-    return d3.axisBottom(x)
-        .ticks(5)
-}
 
-// gridlines in y axis function
-function make_y_gridlines() {		
-    return d3.axisLeft(y)
-        .ticks(5)
-}
-  
-    // Plot the hexbins
-    svg.append("clipPath")
-        .attr("id", "clip")
-      .append("rect")
-        .attr("width", width)
-        .attr("height", height)
-  
-    svg.append("g")
-      .attr("clip-path", "url(#clip)")
-      .selectAll("path")
-      .data( hexbin(inputForHexbinFun) )
-      .enter().append("path")
-        .attr("d", hexbin.hexagon())
-        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-        .attr("fill", function(d) { return color(d.length); })
-        .attr("stroke", "black")
-        .attr("stroke-width", "0.1")
-  })       
-
-}
-
-function topContourCSVGraph(icao,div,parameter,add){
-// set the dimensions and margins of the graph
-var margin = {top: 20, right: 20, bottom: 30, left: 50},
-width = 1000 - margin.left - margin.right,
-height = 400 - margin.top - margin.bottom;
-
-// append the svg object to the body of the page
-var svg = d3.select(div)
-  .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-
-// read data
-d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_for_density2d.csv", function(data) {
-
-  // Add X axis
-  var x = d3.scaleLinear()
-    .domain([5, 20])
-    .range([ margin.left, width - margin.right ]);
-  svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x));
-
-  // Add Y axis
-  var y = d3.scaleLinear()
-    .domain([5, 25])
-    .range([ height - margin.bottom, margin.top ]);
-  svg.append("g")
-    .call(d3.axisLeft(y));
-
-  // Prepare a color palette
-  var color = d3.scaleLinear()
-      .domain([0, 1]) // Points per square pixel.
-      .range(["white", "#69b3a2"])
-
-      // add the X gridlines
-  svg.append("g")			
-  .attr("class", "grid")
-  .attr("transform", "translate(0," + height + ")")
-  .call(make_x_gridlines()
-      .tickSize(-height)
-      .tickFormat("")
-  )
-
-// add the Y gridlines
-if(add){
-}else{
-svg.append("g")			
-  .attr("class", "grid")
-  .call(make_y_gridlines()
-      .tickSize(-width)
-      .tickFormat("")
-  )
-}
-
-
-// gridlines in x axis function
-function make_x_gridlines() {		
-return d3.axisBottom(x)
-    .ticks(5)
-}
-
-// gridlines in y axis function
-function make_y_gridlines() {		
-return d3.axisLeft(y)
-    .ticks(5)
-}
-
-  // compute the density data
-  var densityData = d3.contourDensity()
-    .x(function(d) { return x(d.x); })
-    .y(function(d) { return y(d.y); })
-    .size([width, height])
-    .bandwidth(20)
-    (data)
-
-  // show the shape!
-  svg.insert("g", "g")
-    .selectAll("path")
-    .data(densityData)
-    .enter().append("path")
-      .attr("d", d3.geoPath())
-      .attr("fill", function(d) { return color(d.value); })
-})
-
-}
 function topContourGraph(icao,div,parameterInfo,add){
   //levels: "200,250,500,700,850,925,1000",
   //parameterShortName: "RH,TMP,UGRD,VGRD"
@@ -914,7 +796,9 @@ function topContourGraph(icao,div,parameterInfo,add){
       .domain([d3.max(parameterInfo.levels),d3.min(parameterInfo.levels)])
       .range([ height, 0 ]);
     yAxis = svg.append("g")
-      .call(d3.axisLeft(y));    
+      .call(d3.axisLeft(y)); 
+      
+
     
       // Prepare a color palette
       var color = d3.scaleLinear()
@@ -945,7 +829,7 @@ function topContourGraph(icao,div,parameterInfo,add){
     // gridlines in x axis function
     function make_x_gridlines() {		
     return d3.axisBottom(x)
-        .ticks(10)
+        .ticks(20)
     }
     
     // gridlines in y axis function
@@ -964,12 +848,13 @@ for (var i=0;i<topDataset.length;i++){
     .on("mouseover", onMouseOver) //Add listener for the mouseover event
     .on("mouseout", onMouseOut)   //Add listener for the mouse
     .attr("class", "windbarb")
-    .attr("transform", function(d) { console.log(d.level);return "translate("+x(new Date(d.time))+","+y(d.level)+") rotate("+(d.wdir+180)+")"; })
+    //.attr("id", parameterInfo.levels[i]+" "+pad(d.wdir,3)+pad(d.wspd,2))
     .append(function(d) { 
         var wndspd = Math.round(d.wspd/5)*5;
         if (wndspd > 0){
         var barbWnd = document.getElementById('barb'+wndspd);
         var clone = barbWnd.cloneNode(true);
+        clone.setAttribute('id','clone_barb_'+wndspd);
         return clone;
         }else{
           var circles = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -977,6 +862,15 @@ for (var i=0;i<topDataset.length;i++){
           return circles;
         }
      })
+     .attr("transform", function(d) {
+      var rotateDir;
+
+      if (parseFloat(d.wdir) >= 180){
+        rotateDir = parseFloat(d.wdir) - 180;
+      }else{
+        rotateDir = parseFloat(d.wdir) + 180;
+      }
+        return "translate("+x(new Date(d.time))+","+y(d.level)+") rotate("+(rotateDir)+")"; })
     }
     // build the data displays 
     
@@ -1005,6 +899,18 @@ for (var i=0;i<topDataset.length;i++){
           .attr("opacity",function(d){return d.value/100;})
 
   }
+
+       //compute the temp data lines
+       // build a rect on top of the original graph with
+    // Add a Y 2 Axis
+    var y2 = d3.scaleLinear()
+        .domain(-20,40)
+        .range([height,0]);
+      y2Axis = svg.append("g")
+        .attr("transform","translate("+width+",0)")
+        .call(d3.axisRight(y2));
+
+
 
 //mouseover event handler function
 function onMouseOver(d, i) {
@@ -1063,7 +969,7 @@ d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
   // format the data
   //build dataset for winds
   var windDataset =[];
-  console.log(data);
+  //console.log(data);
   data[parameter.param1].forEach(function(d) {
     data[parameter.param2].forEach(function(d1){
         if(d.time == d1.time){
@@ -1166,6 +1072,7 @@ svg.append("g")
           if (wndspd > 0){
           var barbWnd = document.getElementById('barb'+wndspd);
           var clone = barbWnd.cloneNode(true);
+          clone.setAttribute('id','clone_barb_'+wndspd);
           return clone;
           }else{
             var circles = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -1180,6 +1087,8 @@ svg.append("g")
 
 
 }
+
+// weather functions...might need to break these out as another library
 
 function windSpeed(ucomp, vcomp){
   return windKTs(Math.sqrt((ucomp*ucomp)+(vcomp*vcomp))).toFixed(0);
@@ -1246,14 +1155,36 @@ function pad(num, size) {
       case "inHg":
         return mbToinHG(value);
         break;
+      case "dewpt":
+        return RHtoDewpt(value);
+        break;
+      case "abshum":
+        return absHum(value);
+        break;
       default:
         return value;
     }
   }
-
-  function windBarb(ucomp, vcomp){
+ //absolute Humidity g/m3
+  function absHum([temp, dewpt]){
+    //accepts array of temp and dewpt in C returns abs in g/m3  
+    return ((2165 * ((6.11*10^(7.5*dewpt/(237.7+dewpt))) * 0.1)) / (temp + 273.16));
 
   }
+//lifted index
+function liftedIndex(){}
+
+//altimeter setting
+function alstg(elevation, stationpressure){
+  return (stationpressure - 0.3) * (1 + (((1013.25^0.190284 * 0.0065)/288) * (elevation/(stationpressure -0.3)^0.190284)))^(1/0.190287);
+}
+
+// Dewpoint from RH and Temp
+function RHtoDewpt([Tc,RH]){
+
+  return (Tc - (14.55 + 0.114 * Tc) * (1 - (0.01 * RH)) - ((2.5 + 0.007 * Tc) * (1 - (0.01 * RH))) ^ 3 - (15.9 + 0.117 * Tc) * (1 - (0.01 * RH)) ^ 14)
+}
+
 
 
 
