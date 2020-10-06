@@ -789,7 +789,7 @@ function topContourGraph(icao,div,parameterInfo,add){
     xAxis = svg.append("g")
       //.attr("class","windGraph")
       .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x));
+      .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d/%HZ")));
 
     // Add Y axis
     var y = d3.scaleLinear()   
