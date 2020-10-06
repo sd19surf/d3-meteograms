@@ -204,7 +204,7 @@ var dataset = [];
       xAxis = svg.append("g")
         .attr("transform", "translate(0," + height + ")")
         .attr("class", "zoomline")
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d/%HZ")));
   
       // Add Y axis
       var y = d3.scaleLinear()
@@ -339,7 +339,7 @@ var dataset = [];
         }
   
         // Update axis and line position
-        xAxis.transition().duration(1000).call(d3.axisBottom(x))
+        xAxis.transition().duration(1000).call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d/%HZ")))
         line
             .select('.line')
             .transition()
@@ -362,7 +362,7 @@ var dataset = [];
       // If user double click, reinitialize the chart
       svg.on("dblclick",function(){
         x.domain(d3.extent(dataset, function(d) { return new Date(d.time); }))
-        xAxis.transition().call(d3.axisBottom(x))
+        xAxis.transition().call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d/%HZ")))
         line
           .select('.line')
           .transition()
@@ -447,15 +447,15 @@ d3.json("./data/"+icao+"_gfs_tarp.json", function(error, data) {
 // X axis
 
    // Add X axis --> it is a date format
-   var x = d3.scaleTime()
+   let x = d3.scaleTime()
         .domain(d3.extent(data[parameter], function(d) { return new Date(d.time); }))
         .range([ 0, width ]);
       xAxis = svg.append("g")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%d/%HZ")));
   
       // Add Y axis
-      var y = d3.scaleLinear()
+      let y = d3.scaleLinear()
         .domain([d3.min(data[parameter], function(d) { return unitConvert(options.units,d.value); }), d3.max(data[parameter], function(d) { return unitConvert(options.units,d.value); })])
         .range([ height, 0 ]);
       yAxis = svg.append("g")
@@ -738,7 +738,7 @@ function topContourGraph(icao,div,parameterInfo,add){
     // set the dimensions and margins of the graph
     var margin = {top: 20, right: 20, bottom: 30, left: 50},
     width = 1000 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+    height = 500 - margin.top - margin.bottom;
     
     // append the svg object to the body of the page
     var svg = d3.select(div)
